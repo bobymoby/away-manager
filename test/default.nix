@@ -1,5 +1,4 @@
 {
-  config,
   pkgs,
   lib,
   ...
@@ -11,7 +10,7 @@
       ".file" = {
         source = ./file;
       };
-      ".config/folder" = {
+      ".config/folder3" = {
         source = ./folder;
         recursive = true;
       };

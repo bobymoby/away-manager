@@ -9,8 +9,11 @@ in
       print = value: builtins.trace (toString value) value;
     };
 
-    types = {
-      outOfStoreSymlink = "out-of-store-symlink";
+    types = rec {
+      outOfStoreSymlink = lib.types.mkOptionType {
+        name = "out-of-store-symlink";
+        check = value: isOutOfStoreSymlink value;
+      };
 
       isOutOfStoreSymlink =
         value:
