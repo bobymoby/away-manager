@@ -4,7 +4,7 @@
 }:
 
 {
-  packages = lib.mkOption {
+  options.away.packages = lib.mkOption {
     default = [ ];
   };
 }

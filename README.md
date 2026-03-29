@@ -1,0 +1,1 @@
+nix run . -- switch --flake <flake-ref>#awayConfigurations.<config-name>

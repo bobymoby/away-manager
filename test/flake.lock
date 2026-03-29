@@ -1,5 +1,23 @@
 {
   "nodes": {
+    "away-manager": {
+      "inputs": {
+        "flake-utils": "flake-utils",
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1774797944,
+        "narHash": "sha256-QFxHJq2Xxg+k+kwCAKL3X0lcyoaW/Uo1REziToeGCIU=",
+        "path": "/home/bobymoby/Projects/away-manager",
+        "type": "path"
+      },
+      "original": {
+        "path": "/home/bobymoby/Projects/away-manager",
+        "type": "path"
+      }
+    },
     "flake-utils": {
       "inputs": {
         "systems": "systems"
@@ -36,7 +54,7 @@
     },
     "root": {
       "inputs": {
-        "flake-utils": "flake-utils",
+        "away-manager": "away-manager",
         "nixpkgs": "nixpkgs"
       }
     },

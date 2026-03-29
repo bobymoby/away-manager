@@ -4,12 +4,12 @@
   lib,
   ...
 }@inputs:
-file:
+modules:
+let
+  modulesList = if builtins.isList modules then modules else [ modules ];
+in
 lib.evalModules {
-  modules = [
-    file
-    "${self}/modules"
-  ];
+  modules = modulesList ++ [ "${self}/modules" ];
 
   specialArgs = {
     inherit pkgs lib inputs;

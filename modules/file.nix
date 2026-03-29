@@ -20,7 +20,7 @@ let
   };
 in
 {
-  file = lib.mkOption {
+  options.away.file = lib.mkOption {
     default = { };
     type = lib.types.attrsOf fileType;
   };

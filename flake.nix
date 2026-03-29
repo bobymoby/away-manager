@@ -1,24 +1,26 @@
 {
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+    flake-utils.url = "github:numtide/flake-utils";
   };
 
   outputs =
-    inputs@{ self, nixpkgs, ... }:
-    let
-      system = "x86_64-linux";
-      pkgs = nixpkgs.legacyPackages.${system};
-      customLib = import ./lib {
-        inherit pkgs;
-        lib = pkgs.lib;
-      };
-      lib = pkgs.lib // customLib;
-    in
     {
-      packages.${system}.default = import ./runner/runner.nix {
-        inherit pkgs lib self;
-      } ./test/default.nix;
-
-      test = (import ./runner/runner.nix { inherit pkgs lib; }) ./test/default.nix;
+      self,
+      flake-utils,
+      nixpkgs,
+      ...
+    }:
+    (flake-utils.lib.eachDefaultSystem (
+      system:
+      let
+        pkgs = import nixpkgs { inherit system; };
+      in
+      {
+        packages.default = import ./cli { inherit pkgs; };
+      }
+    ))
+    // {
+      lib = import ./lib/flake-lib.nix { inherit self; };
     };
 }

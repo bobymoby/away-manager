@@ -1,16 +1,16 @@
 {
   lib,
   ...
-}@inputs:
+}:
 
 {
-  options.away = lib.am.mergeAttrSets [
-    (import ./file.nix inputs)
-    (import ./packages.nix inputs)
-    {
-      username = lib.mkOption {
-        type = lib.types.str;
-      };
-    }
+  imports = [
+    ./file.nix
+    ./packages.nix
+    ./away-manager-cli.nix
   ];
+
+  options.away.username = lib.mkOption {
+    type = lib.types.str;
+  };
 }
