@@ -5,7 +5,7 @@
   ...
 }@inputs:
 let
-  loadConfig = import "${self}/loader/loader.nix" inputs;
+  loadConfig = import ./loader.nix inputs;
 in
 
 modules:
@@ -53,25 +53,30 @@ let
 
       fileMapper =
         relPath: value:
-        assert (isAttrs value && hasAttr "source" value) || throw "Invalid file entry for ${relPath}";
+        # assert
+        #   (isAttrs value) && (lib.xor (hasAttr "source" value) (hasAttr "text" value))
+        #   || throw "Invalid file entry for ${relPath}";
 
         let
           targetExpr = "$HOME_DIR/${relPath}";
+          textFileLocation = pkgs.writeTextFile {
+            name = relPath;
+            inherit (value) text executable;
+          };
+          mkLn = source: ''ln -s "${source}" "${targetExpr}"'';
 
-          linkCmd =
-            if isPath value.source && pathExists value.source then
-              # if value.recursive then
-              #   builtins.concatStringsSep "\n" (
-              #     map (file: ''ln -s "${value.source}/${file}" "${targetExpr}/${file}"'') (dirReader value.source)
-              #   )
-              # else
-              ''ln -s "${value.source}" "${targetExpr}"''
-            else if isString value.source then
-              ''ln -s "${value.source}" "${targetExpr}"''
+          linkCmd = mkLn (
+            if hasAttr "text" value && !(isNull value.text) then
+              textFileLocation
+            else if
+              (hasAttr "source" value && isPath value.source && pathExists value.source) || isString value.source
+            then
+              value.source
             else if lib.am.types.isOutOfStoreSymlink value.source then
-              ''ln -s "${value.source.args.path}" "${targetExpr}"''
+              value.source.args.path
             else
-              throw "Invalid file entry for ${relPath}: ${toString value.source}";
+              throw "Invalid file entry for ${relPath}: ${toString value.source}"
+          );
         in
         ''
           mkdir -p "$(dirname "${targetExpr}")"

@@ -10,9 +10,16 @@ let
   fileType = lib.types.submodule {
     options = {
       source = lib.mkOption {
-        type = fileSourceType;
+        type = lib.types.nullOr fileSourceType;
       };
       recursive = lib.mkOption {
+        type = lib.types.bool;
+        default = false;
+      };
+      text = lib.mkOption {
+        type = lib.types.nullOr lib.types.str;
+      };
+      executable = lib.mkOption {
         type = lib.types.bool;
         default = false;
       };

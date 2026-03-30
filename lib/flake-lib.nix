@@ -10,7 +10,7 @@ let
 
   mkAwayPackage =
     pkgs:
-    import "${self}/runner/runner.nix" {
+    import "${self}/parser/activation-package.nix" {
       inherit pkgs self;
       lib = mkLib pkgs;
     };

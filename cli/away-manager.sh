@@ -10,16 +10,19 @@ ${prog} - build + apply an away-manager configuration
 
 Usage:
   ${prog} <switch|uninstall> --flake <flake-ref>
+  ${prog} <switch|uninstall> --flake <flake-ref> --dry
 
 Examples:
   ${prog} switch --flake '.#default'
   ${prog} switch --flake '.#bobymoby'
   ${prog} uninstall --flake '.#bobymoby'
+  ${prog} switch --flake '.#bobymoby' --dry
 
 Notes:
   - <flake-ref> should resolve to an away-manager package output that contains:
       bin/away-manager-activate
       bin/away-manager-uninstall
+  - --dry prints the commands that would be executed, without executing them.
 EOF
 }
 
@@ -32,6 +35,7 @@ die() {
 
 cmd=""
 flake=""
+dryRun=0
 
 if (($# == 0)); then
   usage
@@ -61,6 +65,10 @@ while (($#)); do
       flake="${1#--flake=}"
       shift
       ;;
+    --dry)
+      dryRun=1
+      shift
+      ;;
     --)
       shift
       break
@@ -74,11 +82,20 @@ done
 [[ -n "$cmd" ]] || die "missing command (expected 'switch' or 'uninstall')"
 [[ -n "$flake" ]] || die "missing --flake <flake-ref>"
 
-build_out_path() {
-  nix build --no-link --print-out-paths "$1"
-}
+out_path="$(nix build --no-link --print-out-paths "$flake")"
 
-out_path="$(build_out_path "$flake")"
+if ((dryRun)); then
+  case "$cmd" in
+    switch)
+      cat "$out_path/bin/away-manager-activate" | "$PAGER"
+      ;;
+    uninstall)
+      cat "$out_path/bin/away-manager-uninstall" | "$PAGER"
+      ;;
+  esac
+  exit 0
+fi
+
 [[ -n "$out_path" ]] || die "failed to build flake ref: $flake"
 
 case "$cmd" in
