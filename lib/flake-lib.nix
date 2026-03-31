@@ -16,5 +16,6 @@ let
     };
 in
 {
+  inherit mkLib;
   mkAwayConfiguration = { pkgs, modules }: mkAwayPackage pkgs modules;
 }

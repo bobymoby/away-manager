@@ -6,6 +6,7 @@
 }@inputs:
 let
   loadConfig = import ./loader.nix inputs;
+  mkFilesPackage = import ./files-package.nix inputs;
 in
 
 modules:
@@ -17,6 +18,8 @@ let
     name = "away-manager-packages";
     paths = cfg.packages;
   };
+
+  files-package = mkFilesPackage cfg;
 
   fileCommands =
     let
@@ -63,25 +66,29 @@ let
             name = relPath;
             inherit (value) text executable;
           };
+          mkFilesPackagePath =
+            source:
+            # ''$(readlink -e "${files-package}/${source}")'';
+            "${files-package}/${source}";
           mkLn = source: ''ln -s "${source}" "${targetExpr}"'';
 
-          linkCmd = mkLn (
-            if hasAttr "text" value && !(isNull value.text) then
-              textFileLocation
-            else if
-              (hasAttr "source" value && isPath value.source && pathExists value.source) || isString value.source
-            then
-              value.source
-            else if lib.am.types.isOutOfStoreSymlink value.source then
-              value.source.args.path
-            else
-              throw "Invalid file entry for ${relPath}: ${toString value.source}"
-          );
+          # linkCmd = mkLn (
+          #   if hasAttr "text" value && !(isNull value.text) then
+          #     throw "Not yet implemented"
+          #   else if
+          #     (hasAttr "source" value && isPath value.source && pathExists value.source) || isString value.source
+          #   then
+          #     mkFilesPackagePath value.source
+          #   else if lib.am.types.isOutOfStoreSymlink value.source then
+          #     value.source.args.path
+          #   else
+          #     throw "Invalid file entry for ${relPath}: ${toString value.source}"
+          # );
         in
         ''
           mkdir -p "$(dirname "${targetExpr}")"
           rm -rf "${targetExpr}"
-          ${linkCmd}
+          ${mkLn (mkFilesPackagePath relPath)}
         '';
     in
     lib.mapAttrsToList fileMapper cfg.file;
@@ -194,5 +201,8 @@ pkgs.stdenv.mkDerivation {
 
     chmod +x "$out/bin/away-manager-activate"
     chmod +x "$out/bin/away-manager-uninstall"
+
+    mkdir -p "$out/packages"
+    ln -sfn "${packageEnv}" "$out/packages"
   '';
 }

@@ -1,5 +1,5 @@
 { pkgs }:
 pkgs.writeShellApplication {
   name = "away-manager";
-  text = ./away-manager.sh;
+  text = builtins.readFile ./away-manager.sh;
 }

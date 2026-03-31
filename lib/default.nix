@@ -12,14 +12,14 @@ in
     types = rec {
       outOfStoreSymlink = lib.types.mkOptionType {
         name = "out-of-store-symlink";
-        check = value: isOutOfStoreSymlink value;
+        check = isOutOfStoreSymlink;
       };
 
       isOutOfStoreSymlink =
         value:
         builtins.isAttrs value
         && builtins.hasAttr "type" value
-        && value.type == types.outOfStoreSymlink
+        # && value.type == types.outOfStoreSymlink
         && builtins.hasAttr "args" value
         && builtins.isAttrs value.args
         && builtins.hasAttr "path" value.args

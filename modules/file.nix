@@ -11,6 +11,7 @@ let
     options = {
       source = lib.mkOption {
         type = lib.types.nullOr fileSourceType;
+        default = null;
       };
       recursive = lib.mkOption {
         type = lib.types.bool;
@@ -18,6 +19,7 @@ let
       };
       text = lib.mkOption {
         type = lib.types.nullOr lib.types.str;
+        default = null;
       };
       executable = lib.mkOption {
         type = lib.types.bool;
