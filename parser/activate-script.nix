@@ -6,6 +6,7 @@
 }:
 pkgs.writeShellApplication {
   name = "away-manager-activate";
+
   runtimeInputs = with pkgs; [
     coreutils
     findutils

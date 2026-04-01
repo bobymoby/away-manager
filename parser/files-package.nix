@@ -4,47 +4,25 @@
   self,
   ...
 }:
-cfg:
+{
+  file,
+  username,
+  ...
+}:
 let
   fileCommands =
     let
       inherit (builtins)
         isPath
         pathExists
-        readDir
 
         isString
-        stringLength
-        substring
 
-        isAttrs
         hasAttr
         ;
 
-      # dirReader =
-      #   let
-      #     dirMapper =
-      #       rootDir: currDir: relPath: type:
-      #       let
-      #         path = currDir + "/${relPath}";
-      #       in
-      #       if type == "regular" then
-      #         substring (stringLength (toString rootDir) + 1) (-1) (toString path)
-      #       else if type == "directory" then
-      #         dirReader' rootDir path
-      #       else
-      #         throw "Invalid file entry for ${relPath}";
-
-      #     dirReader' = rootDir: dir: lib.flatten (lib.mapAttrsToList (dirMapper rootDir dir) (readDir dir));
-      #   in
-      #   startDir: dirReader' startDir startDir;
-
       fileMapper =
         relPath: value:
-        # assert
-        #   (isAttrs value) && (lib.xor (hasAttr "source" value) (hasAttr "text" value))
-        #   || throw "Invalid file entry for ${relPath}";
-
         let
           targetExpr = "$out/${relPath}";
           textFileLocation = pkgs.writeTextFile {
@@ -61,7 +39,6 @@ let
             then
               value.source
             else if lib.am.types.isOutOfStoreSymlink value.source then
-              # value.source.args.path
               value.source.args.path
             else
               throw "Invalid file entry for ${relPath}."
@@ -73,14 +50,18 @@ let
           ${linkCmd}
         '';
     in
-    lib.mapAttrsToList fileMapper cfg.file;
+    lib.mapAttrsToList fileMapper file;
 in
 
-pkgs.stdenv.mkDerivation {
-  name = "away-manager-files";
-  dontUnpack = true;
-  dontBuild = true;
-  installPhase = ''
-    ${builtins.concatStringsSep "\n\n" fileCommands}
-  '';
-}
+# pkgs.stdenv.mkDerivation {
+#   name = "away-manager-files-${username}";
+
+#   dontUnpack = true;
+#   dontBuild = true;
+
+#   installPhase = ''
+#     ${builtins.concatStringsSep "\n\n" fileCommands}
+#   '';
+# }
+
+pkgs.runCommandLocal "away-manager-files" { } (builtins.concatStringsSep "\n\n" fileCommands)
