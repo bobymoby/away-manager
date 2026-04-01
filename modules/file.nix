@@ -30,7 +30,7 @@ let
 in
 {
   options.away.file = lib.mkOption {
-    default = { };
     type = lib.types.attrsOf fileType;
+    default = { };
   };
 }

@@ -10,19 +10,16 @@ ${prog} - build + apply an away-manager configuration
 
 Usage:
   ${prog} <switch|uninstall> --flake <flake-ref>
-  ${prog} <switch|uninstall> --flake <flake-ref> --dry
 
 Examples:
   ${prog} switch --flake '.#default'
   ${prog} switch --flake '.#bobymoby'
   ${prog} uninstall --flake '.#bobymoby'
-  ${prog} switch --flake '.#bobymoby' --dry
 
 Notes:
   - <flake-ref> should resolve to an away-manager package output that contains:
       bin/away-manager-activate
       bin/away-manager-uninstall
-  - --dry prints the commands that would be executed, without executing them.
 EOF
 }
 
@@ -35,7 +32,6 @@ die() {
 
 cmd=""
 flake=""
-dryRun=0
 
 if (($# == 0)); then
   usage
@@ -65,10 +61,6 @@ while (($#)); do
       flake="${1#--flake=}"
       shift
       ;;
-    --dry)
-      dryRun=1
-      shift
-      ;;
     --)
       shift
       break
@@ -82,27 +74,17 @@ done
 [[ -n "$cmd" ]] || die "missing command (expected 'switch' or 'uninstall')"
 [[ -n "$flake" ]] || die "missing --flake <flake-ref>"
 
-out_path="$(nix build --no-link --print-out-paths "$flake")"
-
-if ((dryRun)); then
-  case "$cmd" in
-    switch)
-      cat "$out_path/bin/away-manager-activate" | "$PAGER"
-      ;;
-    uninstall)
-      cat "$out_path/bin/away-manager-uninstall" | "$PAGER"
-      ;;
-  esac
-  exit 0
-fi
-
-[[ -n "$out_path" ]] || die "failed to build flake ref: $flake"
-
 case "$cmd" in
   switch)
-    exec "$out_path/bin/away-manager-activate"
+    GEN_DIR="$HOME/.away-manager"
+    GEN_PATH="$GEN_DIR/gen-$(date +%Y%m%d-%H%M%S)"
+    mkdir -p "$GEN_DIR"
+    nix build "$flake" --out-link "$GEN_PATH"
+    "$GEN_PATH/bin/away-manager-activate"
+    ln -sfn "$GEN_PATH" "$GEN_DIR/current"
+    ln -sfn "$GEN_DIR/current/packages" "$HOME/.away-manager-profile"
     ;;
   uninstall)
-    exec "$out_path/bin/away-manager-uninstall"
+    exec "$(nix build --no-link --print-out-paths "$flake")/bin/away-manager-uninstall"
     ;;
 esac

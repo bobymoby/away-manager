@@ -66,10 +66,7 @@ let
             name = relPath;
             inherit (value) text executable;
           };
-          mkFilesPackagePath =
-            source:
-            # ''$(readlink -e "${files-package}/${source}")'';
-            "${files-package}/${source}";
+          mkFilesPackagePath = path: "${files-package}/${path}";
           mkLn = source: ''ln -s "${source}" "${targetExpr}"'';
 
           # linkCmd = mkLn (
@@ -92,6 +89,20 @@ let
         '';
     in
     lib.mapAttrsToList fileMapper cfg.file;
+
+  managedPathsFile = pkgs.writeTextFile {
+    name = "managed-paths";
+    text = builtins.concatStringsSep "\n" (
+      lib.mapAttrsToList (relPath: _: "/home/${cfg.username}/${relPath}") cfg.file
+    );
+  };
+  activateScript = import ./activate-script.nix inputs {
+    inherit managedPathsFile fileCommands;
+    inherit (cfg) username;
+  };
+  uninstallScript = import ./uninstall-script.nix inputs {
+    inherit (cfg) username;
+  };
 in
 pkgs.stdenv.mkDerivation {
   name = "away-manager-activate-${cfg.username}";
@@ -102,107 +113,11 @@ pkgs.stdenv.mkDerivation {
   installPhase = ''
     mkdir -p "$out/bin"
 
-    cat > "$out/bin/away-manager-activate" <<'EOF'
-    #!${pkgs.bash}/bin/bash
-    set -euo pipefail
-    PATH='${
-      lib.makeBinPath (
-        with pkgs;
-        [
-          coreutils
-          findutils
-          gnugrep
-        ]
-      )
-    }':"$PATH"
+    ln -s "${managedPathsFile}" "$out/managed-paths"
+    ln -s "${lib.getExe activateScript}" "$out/bin/away-manager-activate"
+    ln -s "${lib.getExe uninstallScript}" "$out/bin/away-manager-uninstall"
 
-    HOME_DIR="''\${AWAY_HOME:-''\${HOME:-/home/${cfg.username}}}"
-    GEN_DIR="''\${AWAY_GEN_DIR:-$HOME_DIR/.away-manager}"
-
-    mkdir -p "$HOME_DIR" "$GEN_DIR"
-
-    PREV_GEN_PATH=""
-    if [ -L "$GEN_DIR/current" ]; then
-      PREV_GEN_PATH="$(readlink -f "$GEN_DIR/current")"
-    fi
-
-    GEN_PATH="$GEN_DIR/gen-$(date +%s)"
-    mkdir -p "$GEN_PATH"
-    MANAGED_PATHS_FILE="$GEN_PATH/managed-paths"
-
-    ln -sfn "${packageEnv}" "$GEN_PATH/packages"
-
-    cat > "$MANAGED_PATHS_FILE" <<EOF2
-    ${builtins.concatStringsSep "\n" (lib.mapAttrsToList (relPath: _: "$HOME_DIR/${relPath}") cfg.file)}
-    EOF2
-
-    ensure_path_in_shell_rc() {
-      rc_file="$1"
-      [ -f "$rc_file" ] || touch "$rc_file"
-
-      # shellcheck disable=SC2016
-      if ! grep -Fq 'export PATH="$HOME/.away-manager-profile/bin:$PATH"' "$rc_file"; then
-        # shellcheck disable=SC2016
-        echo 'export PATH="$HOME/.away-manager-profile/bin:$PATH"' >> "$rc_file"
-      fi
-    }
-
-    ensure_path_in_shell_rc "$HOME_DIR/.bashrc"
-    # ensure_path_in_shell_rc "$HOME_DIR/.zshrc"
-
-    if [ -n "$PREV_GEN_PATH" ] && [ -f "$PREV_GEN_PATH/managed-paths" ]; then
-      while IFS= read -r relPath; do
-        [ -n "$relPath" ] || continue
-        if ! grep -Fxq "$relPath" "$MANAGED_PATHS_FILE"; then
-          rm -rf "$relPath"
-        fi
-      done < "$PREV_GEN_PATH/managed-paths"
-    fi
-
-    ${builtins.concatStringsSep "\n\n" fileCommands}
-
-    ln -sfn "$GEN_PATH" "$GEN_DIR/current"
-    ln -sfn "$GEN_DIR/current/packages" "$HOME_DIR/.away-manager-profile"
-    EOF
-
-    cat > "$out/bin/away-manager-uninstall" <<'EOF'
-    #!${pkgs.bash}/bin/bash
-    set -euo pipefail
-    PATH='${
-      lib.makeBinPath (
-        with pkgs;
-        [
-          coreutils
-          findutils
-          gnugrep
-        ]
-      )
-    }':"$PATH"
-
-    HOME_DIR="''\${AWAY_HOME:-''\${HOME:-/home/${cfg.username}}}"
-    GEN_DIR="''\${AWAY_GEN_DIR:-$HOME_DIR/.away-manager}"
-    CURRENT_GEN_PATH=""
-
-    if [ -L "$GEN_DIR/current" ]; then
-      CURRENT_GEN_PATH="$(readlink -f "$GEN_DIR/current")"
-    fi
-
-    if [ -n "$CURRENT_GEN_PATH" ] && [ -f "$CURRENT_GEN_PATH/managed-paths" ]; then
-      while IFS= read -r relPath; do
-        [ -n "$relPath" ] || continue
-        rm -rf "$relPath"
-      done < "$CURRENT_GEN_PATH/managed-paths"
-    fi
-
-    rm -f "$HOME_DIR/.away-manager-profile"
-    rm -f "$GEN_DIR/current"
-    rm -rf "$GEN_DIR"
-    EOF
-
-    chmod +x "$out/bin/away-manager-activate"
-    chmod +x "$out/bin/away-manager-uninstall"
-
-    mkdir -p "$out/packages"
-    ln -sfn "${packageEnv}" "$out/packages"
+    ln -s "${packageEnv}" "$out/packages"
+    ln -s "${files-package}" "$out/files"
   '';
 }
