@@ -5,7 +5,7 @@
   ...
 }:
 let
-  away-manager-cli = import ../cli/default.nix { inherit pkgs; };
+  away-manager-cli = import ../cli { inherit pkgs; };
 in
 {
   options.away.away-manager-cli = {

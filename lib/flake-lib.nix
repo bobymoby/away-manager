@@ -17,5 +17,18 @@ let
 in
 {
   inherit mkLib;
-  mkAwayConfiguration = { pkgs, modules }: mkAwayPackage pkgs modules;
+  mkAwayConfiguration =
+    { pkgs, modules }:
+    let
+      eval =
+        (import "${self}/parser/loader.nix" {
+          inherit self pkgs;
+          lib = mkLib pkgs;
+        })
+          modules;
+    in
+    {
+      activationPackage = mkAwayPackage pkgs eval;
+      inherit (eval) config options;
+    };
 }

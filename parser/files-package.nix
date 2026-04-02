@@ -52,16 +52,8 @@ let
     in
     lib.mapAttrsToList fileMapper file;
 in
+pkgs.runCommand "away-manager-files" { } ''
+  mkdir -p $out
 
-# pkgs.stdenv.mkDerivation {
-#   name = "away-manager-files-${username}";
-
-#   dontUnpack = true;
-#   dontBuild = true;
-
-#   installPhase = ''
-#     ${builtins.concatStringsSep "\n\n" fileCommands}
-#   '';
-# }
-
-pkgs.runCommandLocal "away-manager-files" { } (builtins.concatStringsSep "\n\n" fileCommands)
+  ${builtins.concatStringsSep "\n" fileCommands}
+''

@@ -5,17 +5,15 @@
   ...
 }@inputs:
 let
-  loadConfig = import ./loader.nix inputs;
   mkFilesPackage = import ./files-package.nix inputs;
   mkActivateScript = import ./activate-script.nix inputs;
   mkUninstallScript = import ./uninstall-script.nix inputs;
+  mkDocs = import ./docs.nix inputs;
 in
 
-modules:
+eval:
 let
-  eval = loadConfig modules;
   cfg = eval.config.away;
-
   packageEnv = pkgs.buildEnv {
     name = "away-manager-packages";
     paths = cfg.packages;
@@ -52,6 +50,8 @@ let
   uninstallScript = mkUninstallScript {
     inherit (cfg) username;
   };
+
+  docsDerivation = (mkDocs eval).optionsCommonMark;
 in
 pkgs.stdenv.mkDerivation {
   name = "away-manager-activate-${cfg.username}";
@@ -68,5 +68,6 @@ pkgs.stdenv.mkDerivation {
     ln -s "${managedPathsFile}" "$out/managed-paths"
     ln -s "${packageEnv}" "$out/packages"
     ln -s "${files-package}" "$out/files"
-  '';
+  ''
+  + lib.optionalString cfg.docs.enable ''ln -s "${docsDerivation}" "$out/docs.md"'';
 }

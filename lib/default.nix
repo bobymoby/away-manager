@@ -40,5 +40,30 @@ in
       };
 
     mergeAttrSets = listArrtSets: foldr recursiveUpdate { } listArrtSets;
+
+    importNixFilesRecursive =
+      dir:
+      let
+        inherit (builtins)
+          readDir
+          concatLists
+          attrNames
+          match
+          ;
+        entries = readDir dir;
+        fileMapper =
+          name:
+          let
+            fileType = entries.${name};
+            path = dir + "/${name}";
+          in
+          if fileType == "directory" then
+            importNixFilesRecursive path
+          else if fileType == "regular" && match ".*\\.nix" name != null then
+            [ path ]
+          else
+            [ ];
+      in
+      concatLists (map fileMapper (attrNames entries));
   };
 }

@@ -35,6 +35,7 @@ die() {
 
 cmd=""
 flake=""
+show_trace=0
 
 if (($# == 0)); then
   usage
@@ -46,6 +47,10 @@ while (($#)); do
     -h|--help)
       usage
       exit 0
+      ;;
+    --show-trace)
+      show_trace=1
+      shift
       ;;
     switch|uninstall|clean)
       if [[ -n "$cmd" ]]; then
@@ -87,22 +92,23 @@ case "$cmd" in
     ;;
 esac
 
+EVALUATION_RESULT=$(nix eval --json --no-pretty "$flake.config.away" --apply 'cfg: { inherit (cfg) home gen-dir; }')
+HOME_DIR=$(jq -r '.home' <<< "$EVALUATION_RESULT")
+GEN_DIR=$(jq -r '."gen-dir"' <<< "$EVALUATION_RESULT")
+
 case "$cmd" in
   switch)
-    GEN_DIR="$HOME/.away-manager"
     GEN_PATH="$GEN_DIR/gen-$(date +%Y%m%d-%H%M%S)"
     mkdir -p "$GEN_DIR"
-    nix build "$flake" --out-link "$GEN_PATH"
+    nix build "$flake.activationPackage" --out-link "$GEN_PATH" "${show_trace:+--show-trace}"
     "$GEN_PATH/bin/away-manager-activate"
     ln -sfn "$GEN_PATH" "$GEN_DIR/current"
-    ln -sfn "$GEN_DIR/current/packages" "$HOME/.away-manager-profile"
+    ln -sfn "$GEN_DIR/current/packages" "$HOME_DIR/.away-manager-profile"
     ;;
   uninstall)
-    exec "$(nix build --no-link --print-out-paths "$flake")/bin/away-manager-uninstall"
+    exec "$(nix build --no-link --print-out-paths "${show_trace:+--show-trace}" "$flake.activationPackage")/bin/away-manager-uninstall"
     ;;
   clean)
-    GEN_DIR="$HOME/.away-manager"
-
     if [[ ! -d "$GEN_DIR" ]]; then
       exit 0
     fi
