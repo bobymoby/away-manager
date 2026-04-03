@@ -24,20 +24,27 @@ let
   managedPathsFile = pkgs.writeTextFile {
     name = "managed-paths";
     text = builtins.concatStringsSep "\n" (
-      lib.mapAttrsToList (relPath: _: "/home/${cfg.username}/${relPath}") cfg.file
+      lib.mapAttrsToList (relPath: _: "${cfg.home}/${relPath}") cfg.file
     );
   };
 
   activateScript = mkActivateScript {
     inherit managedPathsFile;
-    inherit (cfg) username;
+    inherit (cfg)
+      username
+      shell-rc
+      home
+      gen-dir
+      profile-dir
+      shell-rc-path-command
+      ;
 
     fileCommands =
       let
         fileMapper =
           relPath:
           let
-            targetExpr = "$HOME_DIR/${relPath}";
+            targetExpr = "${cfg.home}/${relPath}";
           in
           ''
             mkdir -p "$(dirname "${targetExpr}")"
@@ -48,7 +55,7 @@ let
       map fileMapper (builtins.attrNames cfg.file);
   };
   uninstallScript = mkUninstallScript {
-    inherit (cfg) username;
+    inherit (cfg) username gen-dir profile-dir;
   };
 
   docsDerivation = (mkDocs eval).optionsCommonMark;

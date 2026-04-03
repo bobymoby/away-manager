@@ -35,7 +35,8 @@ let
             if hasAttr "text" value && !(isNull value.text) then
               textFileLocation
             else if
-              (hasAttr "source" value && isPath value.source && pathExists value.source) || isString value.source
+              (hasAttr "source" value && isPath value.source && pathExists value.source)
+              || isString value.source
             then
               value.source
             else if lib.am.types.isOutOfStoreSymlink value.source then
