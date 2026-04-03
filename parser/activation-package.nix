@@ -24,7 +24,7 @@ let
   managedPathsFile = pkgs.writeTextFile {
     name = "managed-paths";
     text = builtins.concatStringsSep "\n" (
-      lib.mapAttrsToList (relPath: _: "${cfg.home}/${relPath}") cfg.file
+      map (relPath: "${cfg.home}/${relPath}") (builtins.attrNames cfg.file)
     );
   };
 
@@ -54,6 +54,7 @@ let
       in
       map fileMapper (builtins.attrNames cfg.file);
   };
+
   uninstallScript = mkUninstallScript {
     inherit (cfg) username gen-dir profile-dir;
   };
