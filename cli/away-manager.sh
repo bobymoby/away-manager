@@ -82,7 +82,7 @@ done
 [[ -n "$cmd" ]] || die "missing command (expected 'switch', 'uninstall', or 'clean')"
 
 case "$cmd" in
-  switch|uninstall)
+  switch)
     [[ -n "$flake" ]] || die "missing --flake <flake-ref>"
     ;;
   clean)
@@ -90,6 +90,14 @@ case "$cmd" in
       die "'clean' does not take --flake"
     fi
     ;;
+  uninstall)
+    if [[ -f "$HOME/.away-manager/current/bin/away-manager-uninstall" ]]; then
+      exec "$HOME/.away-manager/current/bin/away-manager-uninstall"
+    else
+      # echo "warning: no current away-manager profile found at '$HOME/.away-manager/current', skipping uninstall script" >&2
+      echo "rebuilding"
+      exec "$(nix build --no-link --print-out-paths "${show_trace:+--show-trace}" "$flake.activationPackage")/bin/away-manager-uninstall"
+    fi
 esac
 
 EVALUATION_RESULT=$(nix eval --json --no-pretty "$flake.config.away" --apply 'cfg: { inherit (cfg) home gen-dir; }')
@@ -106,7 +114,7 @@ case "$cmd" in
     ln -sfn "$GEN_DIR/current/packages" "$HOME_DIR/.away-manager-profile"
     ;;
   uninstall)
-    exec "$(nix build --no-link --print-out-paths "${show_trace:+--show-trace}" "$flake.activationPackage")/bin/away-manager-uninstall"
+    # exec "$(nix build --no-link --print-out-paths "${show_trace:+--show-trace}" "$flake.activationPackage")/bin/away-manager-uninstall"
     ;;
   clean)
     if [[ ! -d "$GEN_DIR" ]]; then
