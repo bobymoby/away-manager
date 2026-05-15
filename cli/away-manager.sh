@@ -10,16 +10,20 @@ ${prog} - build + apply an away-manager configuration
 
 Usage:
   ${prog} switch --flake <flake-ref>
-  ${prog} uninstall --flake <flake-ref>
-  ${prog} clean
+  ${prog} list [--flake <flake-ref>]
+  ${prog} activate --generation <gen-name> [--flake <flake-ref>]
+  ${prog} uninstall [--flake <flake-ref>]
+  ${prog} clean [--flake <flake-ref>]
 
 Examples:
   ${prog} switch --flake '.#default'
-  ${prog} switch --flake '.#bobymoby'
-  ${prog} uninstall --flake '.#bobymoby'
+  ${prog} list
+  ${prog} activate --generation gen-20250516-120000
+  ${prog} activate --flake '.#bobymoby' --generation gen-20250516-120000
   ${prog} clean
 
 Notes:
+  - Without --flake, list/activate/clean use \$HOME and \$HOME/.away-manager.
   - <flake-ref> should resolve to an away-manager package output that contains:
       bin/away-manager-activate
       bin/away-manager-uninstall
@@ -33,8 +37,80 @@ die() {
   exit 2
 }
 
+collect_generations() {
+  local gen_dir="$1"
+  generations=()
+  while IFS= read -r -d '' g; do
+    generations+=("$g")
+  done < <(find "$gen_dir" -maxdepth 1 -name 'gen-*' -print0 2>/dev/null | sort -z)
+}
+
+resolve_generation() {
+  local gen_dir="$1" spec="$2"
+  local g base
+
+  collect_generations "$gen_dir"
+  ((${#generations[@]})) || die "no generations found in '$gen_dir'"
+
+  for g in "${generations[@]}"; do
+    base="$(basename "$g")"
+    if [[ "$base" == "$spec" ]]; then
+      echo "$g"
+      return
+    fi
+  done
+
+  die "no generation named '$spec'"
+}
+
+list_generations() {
+  local gen_dir="$1"
+  local current_target="" g base marker
+
+  if [[ -L "$gen_dir/current" ]]; then
+    current_target="$(readlink -f "$gen_dir/current" 2>/dev/null || true)"
+  fi
+
+  collect_generations "$gen_dir"
+  ((${#generations[@]})) || {
+    echo "no generations in '$gen_dir'"
+    return
+  }
+
+  for g in "${generations[@]}"; do
+    base="$(basename "$g")"
+    marker=""
+    if [[ -n "$current_target" && "$g" == "$current_target" ]]; then
+      marker=" (current)"
+    fi
+    printf '%s%s\n' "$base" "$marker"
+  done
+}
+
+activate_generation() {
+  local gen_path="$1" gen_dir="$2" home_dir="$3"
+  [[ -x "$gen_path/bin/away-manager-activate" ]] \
+    || die "generation '$gen_path' is missing away-manager-activate"
+  "$gen_path/bin/away-manager-activate"
+  ln -sfn "$gen_path" "$gen_dir/current"
+  ln -sfn "$gen_dir/current/packages" "$home_dir/.away-manager-profile"
+}
+
+resolve_away_paths() {
+  if [[ -n "$flake" ]]; then
+    local evaluation_result
+    evaluation_result=$(nix eval --json --no-pretty "$flake.config.away" --apply 'cfg: { inherit (cfg) home gen-dir; }')
+    HOME_DIR=$(jq -r '.home' <<< "$evaluation_result")
+    GEN_DIR=$(jq -r '."gen-dir"' <<< "$evaluation_result")
+  else
+    HOME_DIR="$HOME"
+    GEN_DIR="$HOME/.away-manager"
+  fi
+}
+
 cmd=""
 flake=""
+generation=""
 show_trace=0
 
 if (($# == 0)); then
@@ -52,11 +128,21 @@ while (($#)); do
       show_trace=1
       shift
       ;;
-    switch|uninstall|clean)
+    switch|uninstall|clean|list|activate)
       if [[ -n "$cmd" ]]; then
         die "multiple commands specified: '$cmd' and '$1'"
       fi
       cmd="$1"
+      shift
+      ;;
+    --generation)
+      shift
+      [[ $# -gt 0 ]] || die "--generation requires a value"
+      generation="$1"
+      shift
+      ;;
+    --generation=*)
+      generation="${1#--generation=}"
       shift
       ;;
     --flake)
@@ -79,16 +165,14 @@ while (($#)); do
   esac
 done
 
-[[ -n "$cmd" ]] || die "missing command (expected 'switch', 'uninstall', or 'clean')"
+[[ -n "$cmd" ]] || die "missing command (expected 'switch', 'list', 'activate', 'uninstall', or 'clean')"
 
 case "$cmd" in
   switch)
     [[ -n "$flake" ]] || die "missing --flake <flake-ref>"
     ;;
-  clean)
-    if [[ -n "${flake:-}" ]]; then
-      die "'clean' does not take --flake"
-    fi
+  activate)
+    [[ -n "$generation" ]] || die "missing --generation <gen-name>"
     ;;
   uninstall)
     if [[ -f "$HOME/.away-manager/current/bin/away-manager-uninstall" ]]; then
@@ -100,18 +184,25 @@ case "$cmd" in
     fi
 esac
 
-EVALUATION_RESULT=$(nix eval --json --no-pretty "$flake.config.away" --apply 'cfg: { inherit (cfg) home gen-dir; }')
-HOME_DIR=$(jq -r '.home' <<< "$EVALUATION_RESULT")
-GEN_DIR=$(jq -r '."gen-dir"' <<< "$EVALUATION_RESULT")
+case "$cmd" in
+  switch|list|activate|clean)
+    resolve_away_paths
+    ;;
+esac
 
 case "$cmd" in
   switch)
     GEN_PATH="$GEN_DIR/gen-$(date +%Y%m%d-%H%M%S)"
     mkdir -p "$GEN_DIR"
     nix build "$flake.activationPackage" --out-link "$GEN_PATH" "${show_trace:+--show-trace}"
-    "$GEN_PATH/bin/away-manager-activate"
-    ln -sfn "$GEN_PATH" "$GEN_DIR/current"
-    ln -sfn "$GEN_DIR/current/packages" "$HOME_DIR/.away-manager-profile"
+    activate_generation "$GEN_PATH" "$GEN_DIR" "$HOME_DIR"
+    ;;
+  list)
+    list_generations "$GEN_DIR"
+    ;;
+  activate)
+    GEN_PATH="$(resolve_generation "$GEN_DIR" "$generation")"
+    activate_generation "$GEN_PATH" "$GEN_DIR" "$HOME_DIR"
     ;;
   uninstall)
     # exec "$(nix build --no-link --print-out-paths "${show_trace:+--show-trace}" "$flake.activationPackage")/bin/away-manager-uninstall"
