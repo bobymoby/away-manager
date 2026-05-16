@@ -2,8 +2,8 @@
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
     away-manager = {
-      url = "github:bobymoby/away-manager";
-      # url = "path:/home/bobymoby/Projects/away-manager";
+      # url = "github:bobymoby/away-manager";
+      url = "path:/home/bobymoby/Projects/away-manager";
       inputs.nixpkgs.follows = "nixpkgs";
     };
   };

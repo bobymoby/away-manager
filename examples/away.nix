@@ -59,5 +59,10 @@
       # beforeLua = "before";
       # afterLua = "after";
     };
+
+    script-extensions = {
+      beforeActivation = [ "echo before" ];
+      afterActivation = [ "echo after" ];
+    };
   };
 }
