@@ -15,5 +15,10 @@
       default = "/home/${config.away.username}";
       description = "The home directory of the user to manage";
     };
+    env-variables = lib.mkOption {
+      type = lib.types.attrsOf lib.types.str;
+      default = { };
+      description = "Environment variables to export in the shell RC file";
+    };
   };
 }

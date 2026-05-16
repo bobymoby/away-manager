@@ -7,10 +7,10 @@
   home,
   gen-dir,
   profile-dir,
-  shell-rc-path-command,
   script-extensions,
 }:
 let
+  sourceCommand = ''. "${gen-dir}/current/away-manager-source-rc.sh"'';
   beforeActivationCommands = lib.am.concatStringsNewLine script-extensions.beforeActivation;
   afterActivationCommands = lib.am.concatStringsNewLine script-extensions.afterActivation;
 in
@@ -35,18 +35,12 @@ pkgs.writeShellApplication {
       PREV_GEN_PATH="$(readlink -f "${gen-dir}/current")"
     fi
 
-    ensure_path_in_shell_rc() {
-      rc_file="$1"
-      [ -f "$rc_file" ] || touch "$rc_file"
-
+    [ -f "${shell-rc}" ] || touch "${shell-rc}"
+    # shellcheck disable=SC2016
+    if ! grep -Fq '${sourceCommand}' "${shell-rc}"; then
       # shellcheck disable=SC2016
-      if ! grep -Fq '${shell-rc-path-command}' "$rc_file"; then
-        # shellcheck disable=SC2016
-        echo '${shell-rc-path-command}' >> "$rc_file"
-      fi
-    }
-
-    ensure_path_in_shell_rc "${shell-rc}"
+      echo '${sourceCommand}' >> "${shell-rc}"
+    fi
 
     if [ -n "$PREV_GEN_PATH" ] && [ -f "$PREV_GEN_PATH/managed-paths" ]; then
       while IFS= read -r relPath || [ -n "$relPath" ]; do

@@ -108,15 +108,17 @@ in
     };
   };
 
-  config.away = {
-    packages = [ cfg.package ];
+  config = lib.mkIf cfg.enable {
+    away = {
+      packages = [ cfg.package ];
 
-    file.".config/nvim/init.lua".text = lib.am.concatStringsNewLine [
-      cfg.beforeLua
-      (renderLuaAssignments cfg.config)
-      (keymapsToLua cfg.keymap)
-      cfg.afterLua
-    ];
-    # file.".config/nvim/init.vim".text = cfg.configVim;
+      file.".config/nvim/init.lua".text = lib.am.concatStringsNewLine [
+        cfg.beforeLua
+        (renderLuaAssignments cfg.config)
+        (keymapsToLua cfg.keymap)
+        cfg.afterLua
+      ];
+      # file.".config/nvim/init.vim".text = cfg.configVim;
+    };
   };
 }

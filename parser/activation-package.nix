@@ -28,6 +28,19 @@ let
     );
   };
 
+  envScript = pkgs.writeTextFile {
+    name = "away-manager-source-rc.sh";
+    text = lib.am.concatStringsNewLine (
+      [
+        cfg.shell-rc-path-command
+        "\n"
+      ]
+      ++ lib.mapAttrsToList (
+        k: v: "export ${k}=\"${lib.replaceStrings [ "\\" "\"" ] [ "\\\\" "\\\"" ] v}\""
+      ) cfg.env-variables
+    );
+  };
+
   activateScript = mkActivateScript {
     inherit managedPathsFile;
     inherit (cfg)
@@ -36,7 +49,6 @@ let
       home
       gen-dir
       profile-dir
-      shell-rc-path-command
       script-extensions
       ;
 
@@ -82,6 +94,7 @@ pkgs.stdenv.mkDerivation {
     ln -s "${managedPathsFile}" "$out/managed-paths"
     ln -s "${packageEnv}" "$out/packages"
     ln -s "${files-package}" "$out/files"
+    ln -s "${envScript}" "$out/away-manager-source-rc.sh"
   ''
   + lib.optionalString cfg.docs.enable ''ln -s "${docsDerivation}" "$out/docs.md"'';
 }

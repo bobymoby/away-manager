@@ -64,5 +64,9 @@
       beforeActivation = [ "echo before" ];
       afterActivation = [ "echo after" ];
     };
+
+    env-variables = {
+      "MYKEY" = "MY-VALUE";
+    };
   };
 }
