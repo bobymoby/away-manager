@@ -35,3 +35,5 @@ More examples in `examples`
 ```bash
 nix run github:bobymoby/away-manager -- switch --flake <flake-ref>#awayConfigurations.<config-name>
 ```
+
+Currently supports only POSIX-compatible shells
