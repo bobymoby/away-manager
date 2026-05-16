@@ -23,7 +23,7 @@ let
 
   managedPathsFile = pkgs.writeTextFile {
     name = "managed-paths";
-    text = builtins.concatStringsSep "\n" (
+    text = lib.am.concatStringsNewLine (
       map (relPath: "${cfg.home}/${relPath}") (builtins.attrNames cfg.file)
     );
   };
@@ -37,6 +37,7 @@ let
       gen-dir
       profile-dir
       shell-rc-path-command
+      script-extensions
       ;
 
     fileCommands =
@@ -56,7 +57,12 @@ let
   };
 
   uninstallScript = mkUninstallScript {
-    inherit (cfg) username gen-dir profile-dir;
+    inherit (cfg)
+      username
+      gen-dir
+      profile-dir
+      script-extensions
+      ;
   };
 
   docsDerivation = (mkDocs eval).optionsCommonMark;

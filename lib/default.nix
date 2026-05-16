@@ -65,5 +65,7 @@ in
             [ ];
       in
       concatLists (map fileMapper (attrNames entries));
+
+    concatStringsNewLine = builtins.concatStringsSep "\n";
   };
 }

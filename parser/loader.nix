@@ -18,7 +18,7 @@ let
   };
   assertions = loadedModules.config.away.assertions;
   falseAssertions = builtins.filter (assertion: !assertion.assertion) assertions;
-  falseAssertionsMessages = builtins.concatStringsSep "\n" (
+  falseAssertionsMessages = lib.am.concatStringsNewLine (
     map (assertion: assertion.message) falseAssertions
   );
 in

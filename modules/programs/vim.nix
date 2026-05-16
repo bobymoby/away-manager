@@ -30,22 +30,19 @@ let
         let
           path = if prefix == "" then name else "${prefix}.${name}";
         in
-        if isPlainAttrs value then
-          flattenLuaAttrs path value
-        else
-          [ { inherit path value; } ]
+        if isPlainAttrs value then flattenLuaAttrs path value else [ { inherit path value; } ]
       ) attrs
     );
 
   renderLuaAssignments =
     attrs:
-    lib.concatStringsSep "\n" (
+    lib.am.concatStringsNewLine (
       map (entry: "${entry.path} = ${toLua entry.value}") (flattenLuaAttrs "" attrs)
     );
 
   keymapsToLua =
     keymapList:
-    lib.concatStringsSep "\n" (
+    lib.am.concatStringsNewLine (
       map (
         {
           mode,
@@ -114,7 +111,7 @@ in
   config.away = {
     packages = [ cfg.package ];
 
-    file.".config/nvim/init.lua".text = builtins.concatStringsSep "\n" [
+    file.".config/nvim/init.lua".text = lib.am.concatStringsNewLine [
       cfg.beforeLua
       (renderLuaAssignments cfg.config)
       (keymapsToLua cfg.keymap)

@@ -3,7 +3,12 @@
   username,
   gen-dir,
   profile-dir,
+  script-extensions,
 }:
+let
+  beforeUninstallCommands = lib.am.concatStringsNewLine script-extensions.beforeUninstall;
+  afterUninstallCommands = lib.am.concatStringsNewLine script-extensions.afterUninstall;
+in
 pkgs.writeShellApplication {
   name = "away-manager-uninstall";
   runtimeInputs = with pkgs; [
@@ -14,6 +19,8 @@ pkgs.writeShellApplication {
 
   text = ''
     set -euo pipefail
+
+    ${beforeUninstallCommands}
 
     CURRENT_GEN_PATH=""
 
@@ -30,5 +37,7 @@ pkgs.writeShellApplication {
     rm -f "${profile-dir}"
     rm -f "${gen-dir}/current"
     rm -rf "${gen-dir}"
+
+    ${afterUninstallCommands}
   '';
 }

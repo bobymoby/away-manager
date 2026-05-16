@@ -20,7 +20,7 @@ let
     else
       throw "away.btop.config: unsupported value type";
 
-  btopConfText = lib.concatStringsSep "\n" (
+  btopConfText = lib.am.concatStringsNewLine (
     lib.mapAttrsToList (k: v: "${k} = ${serializeBtopValue v}") cfg.config
   );
 in

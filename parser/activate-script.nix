@@ -8,7 +8,12 @@
   gen-dir,
   profile-dir,
   shell-rc-path-command,
+  script-extensions,
 }:
+let
+  beforeActivationCommands = lib.am.concatStringsNewLine script-extensions.beforeActivation;
+  afterActivationCommands = lib.am.concatStringsNewLine script-extensions.afterActivation;
+in
 pkgs.writeShellApplication {
   name = "away-manager-activate";
 
@@ -20,6 +25,8 @@ pkgs.writeShellApplication {
 
   text = ''
     set -euo pipefail
+
+    ${beforeActivationCommands}
 
     mkdir -p "${home}" "${gen-dir}"
 
@@ -53,5 +60,7 @@ pkgs.writeShellApplication {
     fi
 
     ${builtins.concatStringsSep "\n\n" fileCommands}
+
+    ${afterActivationCommands}
   '';
 }
